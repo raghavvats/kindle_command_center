@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/eink.css') }}">
+</head>
+<body data-orientation="{{ orientation|default('portrait') }}">
+  <div class="page">
+    {% block content %}{% endblock %}
+  </div>
+  {# Rotate the dashboard to landscape in-browser. mesquite often ignores the
+     device orientation lock once the GUI is stopped, so we rotate here instead.
+     WebKit hit-tests through the transform, so taps still land on the buttons.
+     Skips if the screen is already landscape (e.g. the device lock did work). #}
+  <script type="text/javascript">
+  (function () {
+    var body = document.body;
+    var mode = body ? body.getAttribute('data-orientation') : 'portrait';
+    if (mode !== 'landscape' && mode !== 'landscape-left') { return; }
+
+    var attempts = 0;
+
+    function dims() {
+      var de = document.documentElement;
+      var w = window.innerWidth || de.clientWidth || body.clientWidth || screen.width || 0;
+      var h = window.innerHeight || de.clientHeight || body.clientHeight || screen.height || 0;
+      return [w, h];
+    }
+
+    function apply() {
+      var d = dims(), vw = d[0], vh = d[1];
+      /* mesquite often reports 0x0 at parse time; retry until layout settles. */
+      if ((!vw || !vh) && attempts++ < 40) { setTimeout(apply, 100); return; }
+      if (!vw || !vh) { return; }
+      if (vw >= vh) { return; }  /* already landscape: leave it */
+
+      /* rotate 90deg = clockwise; landscape-left = counter-clockwise */
+      var t = (mode === 'landscape-left')
+        ? 'translate(0px,' + vh + 'px) rotate(-90deg)'
+        : 'translate(' + vw + 'px,0px) rotate(90deg)';
+
+      document.documentElement.style.overflow = 'hidden';
+      body.style.margin = '0';
+      body.style.position = 'absolute';
+      body.style.top = '0';
+      body.style.left = '0';
+      body.style.width = vh + 'px';
+      body.style.height = vw + 'px';
+      body.style.overflow = 'hidden';
+      body.style.webkitTransformOrigin = '0 0';
+      body.style.MozTransformOrigin = '0 0';
+      body.style.transformOrigin = '0 0';
+      body.style.webkitTransform = t;
+      body.style.MozTransform = t;
+      body.style.transform = t;
+    }
+
+    /* Run after layout settles (mesquite gives 0 size at parse time) and
+       also try immediately for fast browsers. */
+    if (window.addEventListener) {
+      window.addEventListener('load', apply, false);
+    } else if (window.attachEvent) {
+      window.attachEvent('onload', apply);
+    }
+    apply();
+  })();
+  </script>
+</body>
+</html>

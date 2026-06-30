@@ -1,0 +1,16 @@
+{% set d = card.data %}
+<div class="weather-now">
+  <span class="weather-temp">{{ d.temp }}&deg;{{ d.unit }}</span>
+  <span class="weather-desc">{{ d.desc }}<br><small>{{ d.label }} &middot; feels {{ d.feels }}&deg;</small></span>
+</div>
+{% if d.forecast %}
+<div class="forecast">
+  {% for f in d.forecast %}
+  <div class="forecast-day">
+    <div class="fc-name">{{ f.day }}</div>
+    <div class="fc-temp">{{ f.high }}&deg; / {{ f.low }}&deg;</div>
+    <div class="fc-desc">{{ f.desc }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

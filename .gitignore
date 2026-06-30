@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Secrets / local config
+.env
+config/secrets.json
+*.local
+
+# Local Kindle URL (copy url.txt.example -> url.txt)
+kual/extensions/commandcenter/url.txt
+
+# OS
+.DS_Store
+
+# Logs / caches
+*.log
+.cache/
+kual/extensions/commandcenter/launch.log

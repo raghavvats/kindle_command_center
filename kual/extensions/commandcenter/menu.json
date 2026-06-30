@@ -1,0 +1,11 @@
+{
+  "items": [
+    {
+      "name": "Kindle Command Center",
+      "priority": 0,
+      "action": "bin/launch.sh",
+      "exitmenu": false,
+      "refresh": false
+    }
+  ]
+}

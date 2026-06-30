@@ -1,0 +1,25 @@
+{% set d = card.data %}
+{% if d.track %}
+<div class="np">
+  <div class="np-track">{{ d.track }}</div>
+  <div class="np-artist">{{ d.artist }}</div>
+  {% if d.album %}<div class="np-album">{{ d.album }}</div>{% endif %}
+  <div class="np-status">{{ "Playing" if d.playing else "Paused" }}</div>
+</div>
+{% else %}
+<p class="empty">Nothing playing.</p>
+{% endif %}
+
+<form class="controls" method="post" action="{{ url_for('spotify_action') }}" data-card="spotify">
+  <button class="btn btn-ctl" name="action" value="previous">&#9198;</button>
+  {% if d.playing %}
+  <button class="btn btn-ctl" name="action" value="pause">&#9208;</button>
+  {% else %}
+  <button class="btn btn-ctl" name="action" value="play">&#9654;</button>
+  {% endif %}
+  <button class="btn btn-ctl" name="action" value="next">&#9197;</button>
+</form>
+
+{% if card.config.show_lyrics %}
+<div class="lyrics">Lyrics not available via the official API.</div>
+{% endif %}

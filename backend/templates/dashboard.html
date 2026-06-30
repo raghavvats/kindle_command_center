@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block content %}
+
+{# Slim top strip: Kindle battery only, pushed by the KUAL launcher and
+   updated live by the poll below. "+" = charging, "?" = stale. #}
+<div class="topbar">
+  <span class="batt" id="batt">{% if battery %}{{ battery.level }}%{% if battery.charging %} +{% endif %}{% if battery.stale %} ?{% endif %}{% endif %}</span>
+</div>
+
+{# All-tiles view slides horizontally; a preset is sized to fit the screen. #}
+<div class="grid {% if active_preset %}grid-fit{% else %}grid-scroll{% endif %}">
+  {% for card in cards %}
+  <div class="col" id="col-{{ card.type }}" data-version="{{ card.version }}">
+    {% include "_card.html" %}
+  </div>
+  {% endfor %}
+</div>
+
+{# Bottom toolbar: tools (presets / refresh / exit). Kept small - rarely used. #}
+<div class="toolbar">
+  {# Preset views: "All" plus each named preset from config.yaml. #}
+  {% if presets %}
+  <a class="btn{% if not active_preset %} btn-active{% endif %}" href="{{ url_for('dashboard') }}">All</a>
+  {% for key, p in presets.items() %}
+  <a class="btn{% if active_preset == key %} btn-active{% endif %}" href="{{ url_for('dashboard', preset=key) }}">{{ p.title }}</a>
+  {% endfor %}
+  {% endif %}
+  <span class="spacer"></span>
+  <a class="btn btn-refresh-all" href="{{ url_for('dashboard', refresh='all', preset=active_preset) }}">Refresh All</a>
+  {# Signals the KUAL launcher via /api/kindle-exit/poll (window.close fails in mesquite). #}
+  <a class="btn btn-exit" href="{{ url_for('kindle_exit') }}">Exit</a>
+</div>
+
+{# In-place card updates. Plain ES5 + XMLHttpRequest for the old Kindle
+   WebKit. Two jobs:
+     1. Control buttons (Spotify / Todoist / Hue) and per-card refresh links
+        update only their own tile - no full-page nav, so the active preset
+        and landscape rotation are preserved.
+     2. Optional auto-refresh poll swaps cards whose data changed.
+   If JS is unavailable, the forms/links still work via normal navigation. #}
+<script type="text/javascript">
+(function () {
+  function bust(url) {
+    return url + (url.indexOf('?') === -1 ? '?' : '&') + 't=' + (new Date()).getTime();
+  }
+
+  // Update the topbar battery readout from an /api/state "battery" object.
+  function setBattery(b) {
+    var el = document.getElementById('batt');
+    if (!el) { return; }
+    var s = '';
+    if (b && b.level != null) {
+      s = b.level + '%';
+      if (b.charging) { s += ' +'; }
+      if (b.stale) { s += ' ?'; }
+    }
+    if ('textContent' in el) { el.textContent = s; } else { el.innerText = s; }
+  }
+
+  // Swap a single card's HTML in place. `refresh` forces a fresh fetch;
+  // `version` (when known) is recorded so the poller treats it as current.
+  function swapCard(type, refresh, version) {
+    var url = '/card/' + type + (refresh ? '?refresh=' + type : '');
+    var x = new XMLHttpRequest();
+    x.open('GET', bust(url), true);
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) { return; }
+      if (x.status === 200) {
+        var col = document.getElementById('col-' + type);
+        if (col) {
+          col.innerHTML = x.responseText;
+          if (version) { col.setAttribute('data-version', version); }
+        }
+      }
+    };
+    x.send();
+  }
+
+  // ----- control buttons & per-card refresh (event delegation) ----------
+  function ascend(node, test) {
+    while (node && node !== document) {
+      if (node.tagName && test(node)) { return node; }
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  function onClick(e) {
+    var t = e.target || e.srcElement;
+
+    // (a) per-card refresh link (the card-head reload glyph)
+    var link = ascend(t, function (n) {
+      return n.tagName === 'A' && n.getAttribute && n.getAttribute('data-refresh');
+    });
+    if (link) {
+      if (e.preventDefault) { e.preventDefault(); } else { e.returnValue = false; }
+      swapCard(link.getAttribute('data-refresh'), true);
+      return false;
+    }
+
+    // (b) a control button inside an action form (data-card)
+    var btn = ascend(t, function (n) {
+      var isBtn = n.tagName === 'BUTTON' ||
+        (n.tagName === 'INPUT' && (n.type === 'submit' || n.type === 'image'));
+      return isBtn && n.form && n.form.getAttribute('data-card');
+    });
+    if (!btn) { return; }
+
+    var form = btn.form;
+    var type = form.getAttribute('data-card');
+    // NB: read the URL via getAttribute, not form.action - a control named
+    // "action" (play/pause/etc.) clobbers the form.action DOM property.
+    var actionUrl = form.getAttribute('action');
+    if (e.preventDefault) { e.preventDefault(); } else { e.returnValue = false; }
+
+    var parts = [], els = form.elements;
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.name && el.type !== 'submit' && el.type !== 'button' && el.type !== 'image') {
+        parts.push(encodeURIComponent(el.name) + '=' + encodeURIComponent(el.value));
+      }
+    }
+    if (btn.name) {
+      parts.push(encodeURIComponent(btn.name) + '=' + encodeURIComponent(btn.value));
+    }
+
+    var x = new XMLHttpRequest();
+    x.open('POST', actionUrl, true);
+    x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    x.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) { return; }
+      // Pull the affected tile's fresh state. Services like Spotify lag a
+      // moment before the new state is queryable, so swap now for instant
+      // feedback and again shortly after to catch the settled state.
+      swapCard(type, true);
+      setTimeout(function () { swapCard(type, true); }, 900);
+      setTimeout(function () { swapCard(type, true); }, 2000);
+    };
+    x.send(parts.join('&'));
+    return false;
+  }
+
+  if (document.addEventListener) {
+    document.addEventListener('click', onClick, true);
+  } else if (document.attachEvent) {
+    document.attachEvent('onclick', onClick);
+  }
+
+{% if auto_refresh %}
+  // ----- auto-refresh poll ----------------------------------------------
+  var POLL = {{ poll_seconds }} * 1000;
+  // Floor at 2s so a small config value is honored without hammering APIs.
+  if (!POLL || POLL < 2000) { POLL = 10000; }
+
+  function poll() {
+    var x = new XMLHttpRequest();
+    x.open('GET', bust('/api/state'), true);
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4) { return; }
+      if (x.status === 200) {
+        try {
+          var state = JSON.parse(x.responseText);
+          setBattery(state.battery);
+          var versions = state.versions || {};
+          for (var type in versions) {
+            if (!versions.hasOwnProperty(type)) { continue; }
+            var col = document.getElementById('col-' + type);
+            if (col && col.getAttribute('data-version') !== versions[type]) {
+              swapCard(type, false, versions[type]);
+            }
+          }
+        } catch (e) {}
+      }
+      setTimeout(poll, POLL);
+    };
+    x.send();
+  }
+
+  setTimeout(poll, POLL);
+{% endif %}
+
+{% if full_refresh_minutes and full_refresh_minutes > 0 %}
+  // ----- periodic full e-ink refresh (anti-ghosting) --------------------
+  // Auto-refresh repaints cards with PARTIAL e-ink updates, whose residue
+  // accumulates as ghosting. A full page reload makes mesquite do a complete
+  // (flashing) repaint that clears it, and re-fetches every card. Reloading
+  // the current URL preserves the active preset; reload(true) bypasses cache.
+  setTimeout(function () {
+    try { window.location.reload(true); } catch (e) { window.location.reload(); }
+  }, {{ full_refresh_minutes }} * 60000);
+{% endif %}
+})();
+</script>
+
+{% endblock %}

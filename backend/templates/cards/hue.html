@@ -1,0 +1,12 @@
+{% set d = card.data %}
+{% if d.placeholder %}<p class="note">Placeholder &mdash; not wired to real lights yet.</p>{% endif %}
+<div class="lights">
+  {% for light in d.lights %}
+  <form class="light-row" method="post" action="{{ url_for('hue_action') }}" data-card="hue">
+    <input type="hidden" name="light" value="{{ light.id }}">
+    <span class="light-name">{{ light.name }}</span>
+    <span class="light-state">{{ "ON" if light.on else "OFF" }}</span>
+    <button class="btn btn-toggle" name="action" value="toggle">Toggle</button>
+  </form>
+  {% endfor %}
+</div>

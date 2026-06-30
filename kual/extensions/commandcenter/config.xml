@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Legacy KUAL descriptor. Modern KUAL reads menu.json directly;
+     this is included for compatibility with older KUAL versions. -->
+<extension>
+  <information>
+    <name>Kindle Command Center</name>
+    <version>1.0</version>
+    <author>you</author>
+    <id>commandcenter</id>
+  </information>
+  <menus>
+    <menu type="json" dynamic="false">menu.json</menu>
+  </menus>
+</extension>

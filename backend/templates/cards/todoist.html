@@ -1,0 +1,21 @@
+{% set d = card.data %}
+{% if d.tasks %}
+<ul class="list">
+  {% for task in d.tasks %}
+  <li class="list-item task-item {% if task.priority >= 4 %}urgent{% endif %}">
+    {% if d.mock %}
+    <span class="checkbox">&#9633;</span>
+    {% else %}
+    <form class="task-check-form" method="post" action="{{ url_for('todoist_action') }}" data-card="todoist">
+      <input type="hidden" name="task" value="{{ task.id }}">
+      <button class="btn-check" name="action" value="complete" aria-label="Complete task">&#9633;</button>
+    </form>
+    {% endif %}
+    <span class="list-text">{{ task.content }}</span>
+    {% if task.due %}<span class="tag">{{ task.due }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">No tasks. All clear.</p>
+{% endif %}

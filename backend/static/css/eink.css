@@ -1,0 +1,401 @@
+/* ============================================================
+   Kindle Command Center - e-ink stylesheet
+   Design rules:
+     - pure black on white, no gradients/shadows/gray fills
+     - large text, large tap targets (>= 64px)
+     - heavy borders instead of color for separation
+     - NO transitions/animations (e-ink ghosting + slow refresh)
+     - the page fills the (rotated) screen EXACTLY: no vertical
+       scroll. The all-tiles view slides HORIZONTALLY; presets are
+       sized to fit the screen with no scrolling at all.
+
+   COMPAT NOTE - the Kindle's mesquite browser is an ANCIENT WebKit that
+   does NOT understand the modern flexbox spec ("display:flex"). It only
+   supports the original 2009 box model ("display:-webkit-box"). So every
+   flex container below is declared THREE times:
+       display:-webkit-box;   <- old Kindle WebKit uses this
+       display:-webkit-flex;  <- ignored by Kindle, used by newer WebKit
+       display:flex;          <- modern browsers (your laptop) use this
+   and child growth is set with BOTH "-webkit-box-flex:1" (old) and
+   "flex:1 1 0" (modern). Old WebKit drops the values it can't parse, so
+   it keeps the -webkit-box rules; modern browsers override with flex.
+   ============================================================ */
+
+/* ---------- Geist, bundled locally ----------
+   The Kindle loads this page from the laptop over the LAN and its ancient
+   mesquite WebKit can't be trusted to reach a font CDN, so the files are
+   served from /static/fonts. .woff is the safe format for old WebKit;
+   .woff2 is offered first for modern preview browsers. */
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 400;
+  src: url("../fonts/geist-sans-latin-400-normal.woff2") format("woff2"),
+       url("../fonts/geist-sans-latin-400-normal.woff") format("woff");
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 500;
+  src: url("../fonts/geist-sans-latin-500-normal.woff2") format("woff2"),
+       url("../fonts/geist-sans-latin-500-normal.woff") format("woff");
+}
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 700;
+  src: url("../fonts/geist-sans-latin-700-normal.woff2") format("woff2"),
+       url("../fonts/geist-sans-latin-700-normal.woff") format("woff");
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  color: #000000;
+  font-family: "Geist", "Helvetica Neue", Arial, sans-serif;
+  font-size: 23px;
+  line-height: 1.3;
+  -webkit-text-size-adjust: 100%;
+  overflow: hidden;  /* the screen is fixed-size; nothing scrolls the page */
+}
+
+/* The page is a vertical stack that fills the screen exactly:
+     [ slim top strip: battery ]
+     [ content: cards (flex:1, the only place that may slide) ]
+     [ slim bottom toolbar: preset / refresh / exit ]            */
+.page {
+  height: 100%;
+  padding: 8px 10px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-align: stretch;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+
+/* ---------- top strip (battery only, top-right) ---------- */
+.topbar {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-pack: end;            /* push battery to the right */
+  -webkit-box-align: center;
+  -webkit-justify-content: flex-end;
+  justify-content: flex-end;
+  -webkit-align-items: center;
+  align-items: center;
+  margin-bottom: 8px;
+}
+/* Battery readout: bold, boxed so it reads as a status chip on e-ink.
+   Empty when no reading has been pushed yet (collapses, no border). */
+.batt {
+  font-size: 24px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.batt:not(:empty) {
+  border: 3px solid #000;
+  padding: 4px 12px;
+  line-height: 30px;
+}
+
+/* ---------- card area ---------- */
+/* A single horizontal row of cards that takes all the height between the
+   top strip and the bottom toolbar. */
+.grid {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-align: stretch;       /* cards stretch to full height */
+  -webkit-align-items: stretch;
+  align-items: stretch;
+}
+/* Presets / focused views: fit every card on screen, no scrolling. */
+.grid-fit > .col {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  width: 0;                          /* equal share in old box too */
+}
+/* All-tiles view: slide HORIZONTALLY only. Each tile takes ~half the
+   width so two are visible and the rest are a swipe away. box-flex:0 keeps
+   the tiles at their set width so the row overflows and scrolls. */
+.grid-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.grid-scroll > .col {
+  -webkit-box-flex: 0;
+  -webkit-flex: 0 0 auto;
+  flex: 0 0 auto;
+  width: 49%;
+}
+
+.col {
+  padding: 6px;
+  min-width: 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-align: stretch;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+}
+
+.card {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-align: stretch;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  overflow: hidden;          /* fixed height: content is clipped, not scrolled */
+  border: 3px solid #000;
+  padding: 12px 14px;
+  background: #fff;
+}
+.card-head {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-pack: justify;         /* space-between */
+  -webkit-box-align: center;
+  -webkit-justify-content: space-between;
+  justify-content: space-between;
+  -webkit-align-items: center;
+  align-items: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+.card-title { font-size: 30px; font-weight: 700; }
+.card-meta {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+}
+.card-body {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.card-foot { font-size: 15px; margin-top: 8px; text-align: right; }
+
+.badge {
+  border: 2px solid #000;
+  font-size: 15px;
+  padding: 2px 8px;
+  margin-right: 8px;
+  text-transform: uppercase;
+}
+.badge-err { background: #000; color: #fff; }
+
+/* ---------- bottom toolbar (tools: preset / refresh / exit) ----------
+   Kept small and out of the way - these aren't used often. */
+.toolbar {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  border-top: 3px solid #000;
+  padding-top: 8px;
+  margin-top: 8px;
+}
+/* spacer pushes refresh/exit to the right of the presets */
+.toolbar .spacer {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 auto;
+  flex: 1 1 auto;
+}
+.toolbar .btn { margin-right: 8px; }
+.toolbar .btn:last-child { margin-right: 0; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-block;
+  border: 3px solid #000;
+  background: #fff;
+  color: #000;
+  text-decoration: none;
+  text-align: center;
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 700;
+  padding: 12px 18px;
+  min-height: 56px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.btn:active { background: #000; color: #fff; }  /* press feedback, no animation */
+/* Toolbar buttons: smaller, since the bar is a secondary surface. */
+.toolbar .btn {
+  font-size: 19px;
+  font-weight: 500;
+  padding: 7px 14px;
+  min-height: 44px;
+  line-height: 1.2;
+}
+.btn-exit { border-width: 3px; }
+/* Active preset: inverted so the current view is obvious on e-ink. */
+.btn-active { background: #000; color: #fff; }
+
+/* ---------- lists (tasks, calendar) ---------- */
+.list { list-style: none; margin: 0; padding: 0; }
+.list-item {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #000;
+  font-size: 24px;
+}
+.list-item:last-child { border-bottom: none; }
+.list-text {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 auto;
+  flex: 1 1 auto;
+  padding: 0 8px;
+}
+.list-item.urgent .list-text { font-weight: 700; text-decoration: underline; }
+.checkbox { font-size: 26px; }
+/* tap-to-complete checkbox button (Todoist) */
+.task-check-form { margin: 0; }
+.btn-check {
+  border: 2px solid #000;
+  background: #fff;
+  color: #000;
+  font-family: inherit;
+  font-size: 24px;
+  line-height: 1;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  cursor: pointer;
+}
+.btn-check:active { background: #000; color: #fff; }
+.tag {
+  border: 2px solid #000;
+  font-size: 16px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.empty, .note { font-size: 22px; padding: 10px 0; }
+.note { font-style: italic; }
+
+/* calendar specifics */
+.cal-when { width: 120px; display: inline-block; }
+.cal-day { display: block; font-weight: 700; font-size: 19px; }
+.cal-time { display: block; font-size: 17px; }
+
+/* ---------- weather ---------- */
+.weather-now {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.weather-temp { font-size: 68px; font-weight: 700; margin-right: 18px; }
+.weather-desc { font-size: 23px; }
+.forecast {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  border-top: 2px solid #000;
+  padding-top: 10px;
+}
+.forecast-day {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  text-align: center;
+  border-right: 1px solid #000;
+  padding: 4px;
+}
+.forecast-day:last-child { border-right: none; }
+.fc-name { font-weight: 700; font-size: 19px; }
+.fc-temp { font-size: 19px; }
+.fc-desc { font-size: 16px; }
+
+/* ---------- spotify ---------- */
+.np-track { font-size: 32px; font-weight: 700; }
+.np-artist { font-size: 24px; }
+.np-album { font-size: 19px; }
+.np-status { font-size: 17px; margin-top: 6px; text-transform: uppercase; }
+.controls {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  margin-top: 14px;
+}
+.btn-ctl {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 0;
+  flex: 1 1 0;
+  font-size: 32px;
+  min-height: 72px;
+  margin-right: 10px;
+}
+.btn-ctl:last-child { margin-right: 0; }
+.lyrics { margin-top: 12px; font-size: 17px; font-style: italic; }
+
+/* ---------- hue ---------- */
+.lights { margin-top: 4px; }
+.light-row {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-orient: horizontal;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #000;
+}
+.light-row:last-child { border-bottom: none; }
+.light-name {
+  -webkit-box-flex: 1;
+  -webkit-flex: 1 1 auto;
+  flex: 1 1 auto;
+  font-size: 24px;
+  font-weight: 700;
+}
+.light-state { width: 70px; font-size: 19px; }
+.btn-toggle { min-height: 56px; }

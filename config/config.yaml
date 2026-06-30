@@ -1,0 +1,88 @@
+# ============================================================
+# Dashboard layout / card configuration.
+# Edit this file to add, remove, reorder, or rename cards.
+# No code changes needed for layout tweaks.
+# ============================================================
+
+dashboard:
+  title: "Command Center"
+
+  # Display orientation: "landscape" or "portrait".
+  # "landscape" rotates the whole dashboard 90 degrees in the browser so the
+  # Kindle's long edge becomes the width. This is done in-browser (CSS) because
+  # mesquite often ignores the device's own orientation lock once the GUI is
+  # stopped. Tap targets still work (the browser maps taps through the rotation).
+  # If it comes out upside down, set this to "landscape-left".
+  orientation: landscape
+
+  # Number of columns in the card grid. The Kindle screen is
+  # portrait & small, so 1 or 2 works best. e-ink-friendly.
+  columns: 2
+  # Default cache time-to-live (seconds) before data is re-fetched.
+  # Manual refresh buttons always force a fresh fetch. Per-card `ttl`
+  # below overrides this.
+  cache_ttl: 300
+
+  # Auto-refresh: the browser quietly polls the server and updates ONLY
+  # the cards whose data actually changed (e-ink friendly - no full-page
+  # flashing). Set to false to disable and rely on manual refresh.
+  auto_refresh: true
+  # How often (seconds) the browser checks for changes. Data is still only
+  # re-fetched from each service per that card's `ttl`, so a small value
+  # here just makes the screen notice changes sooner; it does not hammer
+  # the external APIs. Floored at 2s in the browser.
+  poll_seconds: 5
+
+  # E-ink anti-ghosting. The auto-refresh above repaints cards with PARTIAL
+  # e-ink updates, which leave faint residue that builds up over time. A full
+  # page reload forces a complete (flashing) refresh that clears it. This sets
+  # how often (minutes) that happens; it also re-fetches every card. A static
+  # image is safe on e-ink (no burn-in, ~zero power) so this is only about
+  # ghosting, not screen health. Set to 0 to disable.
+  full_refresh_minutes: 30
+
+  # Presets: named, focused subsets of the cards below. The dashboard shows
+  # buttons for each one in the top bar; selecting a preset shows only its
+  # cards, in the listed order. The default view (no preset) shows every
+  # enabled card. `cards` entries must match a card `type` below.
+  presets:
+    work:
+      title: "Work"
+      cards: [todoist, spotify]
+    summary:
+      title: "Summary"
+      cards: [weather, calendar]
+
+# Cards render top-to-bottom, left-to-right in this order.
+# `type` must match an integration in backend/integrations/.
+# Set `enabled: false` to hide a card without deleting it.
+# `ttl` (seconds) controls how often that card's data is re-fetched.
+cards:
+  - type: todoist
+    title: "Tasks"
+    enabled: true
+    ttl: 120
+
+  - type: calendar
+    title: "Calendar"
+    enabled: true
+    ttl: 600
+
+  - type: weather
+    title: "Weather"
+    enabled: true
+    ttl: 1800
+
+  - type: spotify
+    title: "Now Playing"
+    enabled: true
+    # Now-playing changes often; re-fetch quickly so the poll notices.
+    ttl: 5
+    # Lyrics are not available through the official Spotify API.
+    # Left off by default; see README for options.
+    show_lyrics: false
+
+  - type: hue
+    title: "Lights"
+    enabled: true
+    ttl: 60

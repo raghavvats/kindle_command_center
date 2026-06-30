@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {# Bounce back to the dashboard so the browser never stores this page as
+     its "last page" (which would re-arm exit + show this screen on the next
+     launch). The launcher detects the exit signal and kills mesquite before
+     this redirect matters during a real exit. #}
+  <meta http-equiv="refresh" content="2; url={{ url_for('dashboard') }}">
+  <title>Closing</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/eink.css') }}">
+</head>
+<body>
+  <div class="page">
+    <h1 class="app-title">Closing dashboard</h1>
+    <p class="empty">Returning to Kindle&hellip;</p>
+    <p class="empty"><a class="btn" href="{{ url_for('dashboard') }}">Back to dashboard</a></p>
+  </div>
+</body>
+</html>

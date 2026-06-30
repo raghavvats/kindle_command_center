@@ -1,0 +1,16 @@
+{# Single card. Used both in the dashboard grid and by /card/<type> for
+   in-place auto-refresh updates, so the markup stays in one place. #}
+<div class="card">
+  <div class="card-head">
+    <span class="card-title">{{ card.title }}</span>
+    <span class="card-meta">
+      {% if card.status == 'mock' %}<span class="badge">demo</span>{% endif %}
+      {% if card.data.error %}<span class="badge badge-err">err</span>{% endif %}
+      <a class="btn btn-sm" href="{{ url_for('dashboard', refresh=card.type) }}" data-refresh="{{ card.type }}">&#8635;</a>
+    </span>
+  </div>
+  <div class="card-body">
+    {% include "cards/" + card.type + ".html" %}
+  </div>
+  <div class="card-foot">updated {{ card.data.updated_str }}</div>
+</div>

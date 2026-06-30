@@ -1,0 +1,16 @@
+{% set d = card.data %}
+{% if d.events %}
+<ul class="list">
+  {% for ev in d.events %}
+  <li class="list-item">
+    <span class="cal-when">
+      <span class="cal-day">{{ ev.day_label }}</span>
+      <span class="cal-time">{{ ev.time_label }}</span>
+    </span>
+    <span class="list-text">{{ ev.summary }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">Nothing scheduled.</p>
+{% endif %}
